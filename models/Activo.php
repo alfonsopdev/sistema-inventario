@@ -152,5 +152,9 @@ class Activo extends ModelMaster{
     return parent::execProcedure($data, "spu_activo_carga_masiva", true);
   }
 
+  public function eliminarActivo(array $data){
+    return parent::execProcedure($data, "spu_activo_eliminar_logico", false);
+  }
+
 }
 ?>

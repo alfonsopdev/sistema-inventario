@@ -37,17 +37,12 @@ $(document).ready(function(){
                     }
                     ],
                     dom: 'Bfrtip',
-                    buttons: ['copy', 'pdf', 'excel', 
-                        {
-                            extend: 'print',
-                            text: "Imprimir",
-                            title: "",
-                            footer: true,
-                            exportOptions: {
-                                columns: [ 0, 1, 2, 3,4,5 ],
-                                stripHtml: false, /* Aquí indicamos que no se eliminen las imágenes */
-                            }
-                        }
+                    buttons: [
+                        { extend: 'copy', exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6, 7, 9] } },
+                        { extend: 'pdf', exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6, 7, 9] } },
+                        { extend: 'excel', exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6, 7, 9] } },
+                        { extend: 'print', text: "Imprimir", title: "", footer: true,
+                          exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6, 7, 9] } }
                     ]
                 });
             }
@@ -212,17 +207,12 @@ $(document).ready(function(){
                     }
                     ],
                     dom: 'Bfrtip',
-                    buttons: ['copy', 'pdf', 'excel', 
-                        {
-                            extend: 'print',
-                            text: "Imprimir",
-                            title: "",
-                            footer: true,
-                            exportOptions: {
-                                columns: [ 0, 1, 2, 3,4,5 ],
-                                stripHtml: false, /* Aquí indicamos que no se eliminen las imágenes */
-                            }
-                        }
+                    buttons: [
+                        { extend: 'copy', exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6, 7, 9] } },
+                        { extend: 'pdf', exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6, 7, 9] } },
+                        { extend: 'excel', exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6, 7, 9] } },
+                        { extend: 'print', text: "Imprimir", title: "", footer: true,
+                          exportOptions: { columns: [0, 1, 2, 3, 4, 5, 6, 7, 9] } }
                     ]
                 });
             }

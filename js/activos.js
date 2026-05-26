@@ -369,15 +369,26 @@ $(document).ready(function(){
                     }
                     ],
                     dom: 'Bfrtip',
-                    buttons: ['copy', 'pdf', 'excel', 
+                    buttons: [
+                        {
+                            extend: 'copy',
+                            exportOptions: { columns: [0, 3, 4, 5, 6, 7, 8, 9, 10] }
+                        },
+                        {
+                            extend: 'pdf',
+                            exportOptions: { columns: [0, 3, 4, 5, 6, 7, 8, 9, 10] }
+                        },
+                        {
+                            extend: 'excel',
+                            exportOptions: { columns: [0, 3, 4, 5, 6, 7, 8, 9, 10] }
+                        },
                         {
                             extend: 'print',
                             text: "Imprimir",
                             title: "",
                             footer: true,
                             exportOptions: {
-                                columns: [ 0, 1, 2, 3,4,5 ],
-                                stripHtml: false, /* Aquí indicamos que no se eliminen las imágenes */
+                                columns: [0, 3, 4, 5, 6, 7, 8, 9, 10]
                             }
                         }
                     ]
@@ -456,6 +467,12 @@ $(document).ready(function(){
                     $("#select_sede_editar").val(resultado[0].id_sede);
                     $("#select_dependencia_editar").val(resultado[0].id_dependencia);
                     $("#select_estado_editar").val(resultado[0].estado);
+                    $("#fecCompra_editar").val(resultado[0].fecha_adquisicion || '');
+                    if (resultado[0].orden_compra && resultado[0].orden_compra !== "") {
+                        $("#ordenCompra_editar").next(".custom-file-label").text(resultado[0].orden_compra);
+                    } else {
+                        $("#ordenCompra_editar").next(".custom-file-label").text("Elegir archivo");
+                    }
                     $("#txt_observacion_editar").val(resultado[0].observacion);
 
                     // limpiar input file
@@ -570,17 +587,32 @@ $(document).ready(function(){
         let idactivo = $(this).data("idactivo");
 
         Swal.fire({
-        title: "Estás segur@ de eliminar este activo?",
+        title: "¿Estás seguro de eliminar este activo?",
+        text: "Se marcará como inactivo, no se eliminará físicamente.",
         icon: "warning",
         showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Si, Eliminar!"
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Si, Eliminar!",
+        cancelButtonText: "Cancelar"
         }).then((result) => {
             if (result.isConfirmed) {
-                Swal.fire({
-                title: "Eliminado!",
-                icon: "success"
+                $.ajax({
+                    url: "controllers/Activo.controller.php",
+                    type: "GET",
+                    data: { op: "eliminarActivo", idactivo: idactivo },
+                    dataType: "json",
+                    success: function (r) {
+                        if (r.status === "success") {
+                            mostrarAlerta("success", "Activo eliminado correctamente.");
+                            listarActivos();
+                        } else {
+                            mostrarAlerta("error", r.message || "Error al eliminar");
+                        }
+                    },
+                    error: function () {
+                        mostrarAlerta("error", "Error de conexión al eliminar");
+                    }
                 });
             }
         });
@@ -654,15 +686,26 @@ $(document).ready(function(){
                     }
                     ],
                     dom: 'Bfrtip',
-                    buttons: ['copy', 'pdf', 'excel', 
+                    buttons: [
+                        {
+                            extend: 'copy',
+                            exportOptions: { columns: [0, 3, 4, 5, 6, 7, 8, 9, 10] }
+                        },
+                        {
+                            extend: 'pdf',
+                            exportOptions: { columns: [0, 3, 4, 5, 6, 7, 8, 9, 10] }
+                        },
+                        {
+                            extend: 'excel',
+                            exportOptions: { columns: [0, 3, 4, 5, 6, 7, 8, 9, 10] }
+                        },
                         {
                             extend: 'print',
                             text: "Imprimir",
                             title: "",
                             footer: true,
                             exportOptions: {
-                                columns: [ 0, 1, 2, 3,4,5 ],
-                                stripHtml: false,
+                                columns: [0, 3, 4, 5, 6, 7, 8, 9, 10]
                             }
                         }
                     ]
@@ -736,6 +779,8 @@ $(document).ready(function(){
         let idsede = $("#select_sede_editar").val();
         let iddependencia = $("#select_dependencia_editar").val();
         let estado = $("#select_estado_editar").val();
+        let fecha_adquisicion = $("#fecCompra_editar").val();
+        let orden_compra = $("#ordenCompra_editar")[0].files[0];
         let observacion = $("#txt_observacion_editar").val();
         let foto = $("#foto_editar")[0].files[0]; // archivo imagen
         let foto_actual = $("#foto_actual").val();
@@ -779,6 +824,10 @@ $(document).ready(function(){
                 datos.append("idsede", idsede);
                 datos.append("iddependencia", iddependencia);
                 datos.append("estado", estado);
+                datos.append("fecha_adquisicion", fecha_adquisicion);
+                if (orden_compra !== undefined) {
+                    datos.append("ordenCompra", orden_compra);
+                }
                 datos.append("observacion", observacion);
                 datos.append("foto_actual", foto_actual);
 
@@ -1786,7 +1835,7 @@ $(document).ready(function(){
     $("#registrar_mov_dev").click(registrarMovimientoDevolucion);
 
     // ACTUALIZAR LABEL DE ARCHIVOS
-    $("#foto, #ordenCompra").on("change", function () {
+    $("#foto, #ordenCompra, #foto_editar, #ordenCompra_editar").on("change", function () {
         var fileName = $(this).val().split("\\").pop();
         $(this).next(".custom-file-label").html(fileName);
     });

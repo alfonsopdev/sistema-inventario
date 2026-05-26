@@ -2,7 +2,4 @@
 /vendor/
 /dist/
 new_procedures.txt
-/archivos/*
-!/archivos/.gitkeep
-/img/*
-/docs/movimientos/*
+  

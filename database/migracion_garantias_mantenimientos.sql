@@ -477,4 +477,134 @@ BEGIN
     VALUES (_idcategoria, _txt_marca, _txt_modelo, _txt_serie, _txt_patrimonial, _select_responsable, _select_sede, _select_dependencia, _foto, _select_estado, _date_fecha_adquisicion, _orden_compra, _observacion);
 END$$
 
+-- 12. SOFT DELETE — columna estado_activo y SPs actualizados
+ALTER TABLE activo ADD COLUMN estado_activo CHAR(1) NOT NULL DEFAULT '1' AFTER estado_mov;
+UPDATE activo SET estado_activo = '1';
+
+DROP PROCEDURE IF EXISTS spu_activo_eliminar_logico$$
+CREATE PROCEDURE spu_activo_eliminar_logico(IN _idactivo INT)
+BEGIN
+    UPDATE activo SET estado_activo = '0' WHERE id_activo = _idactivo;
+END$$
+
+-- Actualiza spu_activo_listar con filtro estado_activo
+DROP PROCEDURE IF EXISTS spu_activo_listar$$
+CREATE PROCEDURE spu_activo_listar()
+BEGIN
+SELECT ac.id_activo, ac.id_administrativo, ac.id_categoria, ac.id_dependencia, ac.id_sede, ac.foto, ac.cod_patrimonial,
+c.nombre_categoria, CONCAT(ac.marca, ' / ', ac.modelo) as marca_modelo, s.nombre_sede, d.nombre_dependencia,
+CONCAT(p.per_nombre, ' ', p.per_apepat, ' ',p.per_apemat) as npersona, ac.estado, ac.fecha_adquisicion,
+ac.fecha_registro, ac.observacion, ac.qr_code, ac.serie, ac.estado_mov, ac.valor_precio,
+mov.tipo_mov AS ultimo_movimiento
+FROM activo ac
+LEFT JOIN categoria c ON ac.id_categoria = c.id_categoria
+LEFT JOIN sede s ON ac.id_sede = s.id_sede
+LEFT JOIN administrativo a ON ac.id_administrativo = a.id_administrativo
+LEFT JOIN dependencia d ON ac.id_dependencia = d.id_dependencia
+LEFT JOIN persona p ON a.id_persona = p.id_persona
+LEFT JOIN (SELECT md.id_activo, m.tipo_mov FROM activo_movimiento md INNER JOIN movimiento m ON m.id_movimiento = md.id_movimiento INNER JOIN (SELECT MAX(md2.id_movimiento) AS id_movimiento, md2.id_activo FROM activo_movimiento md2 GROUP BY md2.id_activo) ult ON ult.id_movimiento = md.id_movimiento AND ult.id_activo = md.id_activo) mov ON mov.id_activo = ac.id_activo
+WHERE ac.estado_activo = '1'
+ORDER BY ac.fecha_registro DESC;
+END$$
+
+-- Actualiza spu_activo_aplicarfiltro con filtro estado_activo
+DROP PROCEDURE IF EXISTS spu_activo_aplicarfiltro$$
+CREATE PROCEDURE spu_activo_aplicarfiltro(
+    IN _filtro_categoria INT, IN _filtro_responsable INT, IN _filtro_calidad VARCHAR(20),
+    IN _filtro_sede INT, IN _filtro_dependencia INT, IN _filtro_estado VARCHAR(20))
+BEGIN
+SELECT ac.id_activo, ac.id_administrativo, ac.id_categoria, ac.id_dependencia, ac.id_sede, ac.foto, ac.cod_patrimonial,
+c.nombre_categoria, CONCAT(ac.marca, ' / ', ac.modelo) as marca_modelo, s.nombre_sede, d.nombre_dependencia,
+CONCAT(p.per_nombre, ' ', p.per_apepat, ' ',p.per_apemat) as npersona, ac.estado, ac.fecha_adquisicion,
+ac.fecha_registro, ac.observacion, ac.qr_code, ac.serie, ac.estado_mov, ac.valor_precio,
+mov.tipo_mov AS ultimo_movimiento
+FROM activo ac
+LEFT JOIN categoria c ON ac.id_categoria = c.id_categoria
+LEFT JOIN sede s ON ac.id_sede = s.id_sede
+LEFT JOIN administrativo a ON ac.id_administrativo = a.id_administrativo
+LEFT JOIN dependencia d ON ac.id_dependencia = d.id_dependencia
+LEFT JOIN persona p ON a.id_persona = p.id_persona
+LEFT JOIN (SELECT md.id_activo, m.tipo_mov FROM activo_movimiento md INNER JOIN movimiento m ON m.id_movimiento = md.id_movimiento INNER JOIN (SELECT MAX(md2.id_movimiento) AS id_movimiento, md2.id_activo FROM activo_movimiento md2 GROUP BY md2.id_activo) ult ON ult.id_movimiento = md.id_movimiento AND ult.id_activo = md.id_activo) mov ON mov.id_activo = ac.id_activo
+WHERE ac.estado_activo = '1' AND
+      (_filtro_categoria IS NULL OR ac.id_categoria = _filtro_categoria) AND
+      (_filtro_responsable IS NULL OR ac.id_administrativo = _filtro_responsable) AND
+      (_filtro_calidad IS NULL OR ac.estado_mov = _filtro_calidad) AND
+      (_filtro_sede IS NULL OR ac.id_sede = _filtro_sede) AND
+      (_filtro_dependencia IS NULL OR ac.id_dependencia = _filtro_dependencia) AND
+      (_filtro_estado IS NULL OR ac.estado = _filtro_estado)
+ORDER BY ac.fecha_registro DESC;
+END$$
+
+-- Actualiza spu_activo_listar_con_garantia con filtro estado_activo
+DROP PROCEDURE IF EXISTS spu_activo_listar_con_garantia$$
+CREATE PROCEDURE spu_activo_listar_con_garantia()
+BEGIN
+    SELECT ac.id_activo, ac.id_administrativo, ac.id_categoria, ac.id_dependencia, ac.id_sede, ac.foto,
+        ac.cod_patrimonial, c.nombre_categoria, CONCAT(ac.marca, ' / ', ac.modelo) AS marca_modelo,
+        s.nombre_sede, d.nombre_dependencia,
+        CONCAT(p.per_nombre, ' ', p.per_apepat, ' ', p.per_apemat) AS npersona,
+        ac.estado, ac.fecha_adquisicion, ac.fecha_registro, ac.observacion, ac.serie, ac.estado_mov,
+        COALESCE(gar.estado_garantia, 'SIN_GARANTIA') AS estado_garantia,
+        gar.fecha_fin AS garantia_fecha_fin, gar.proveedor AS garantia_proveedor,
+        mov.tipo_mov AS ultimo_movimiento
+    FROM activo ac
+    LEFT JOIN categoria c ON ac.id_categoria = c.id_categoria
+    LEFT JOIN sede s ON ac.id_sede = s.id_sede
+    LEFT JOIN administrativo a ON ac.id_administrativo = a.id_administrativo
+    LEFT JOIN dependencia d ON ac.id_dependencia = d.id_dependencia
+    LEFT JOIN persona p ON a.id_persona = p.id_persona
+    LEFT JOIN (SELECT g.id_activo, CASE WHEN g.fecha_fin < CURDATE() THEN 'VENCIDA' WHEN g.fecha_fin <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'PROXIMO_A_VENCER' ELSE 'VIGENTE' END AS estado_garantia, g.fecha_fin, g.proveedor FROM garantia g INNER JOIN (SELECT id_activo, MAX(id_garantia) AS id_garantia FROM garantia GROUP BY id_activo) ult_g ON ult_g.id_garantia = g.id_garantia) gar ON gar.id_activo = ac.id_activo
+    LEFT JOIN (SELECT m.id_activo, m.tipo_mov FROM movimiento m INNER JOIN (SELECT MAX(id_movimiento) AS id_movimiento, id_activo FROM movimiento GROUP BY id_activo) lm ON lm.id_movimiento = m.id_movimiento) mov ON mov.id_activo = ac.id_activo
+    WHERE ac.estado_activo = '1'
+    ORDER BY ac.fecha_registro DESC;
+END$$
+
+-- Actualiza spu_activo_filtrar_con_garantia con filtro estado_activo
+DROP PROCEDURE IF EXISTS spu_activo_filtrar_con_garantia$$
+CREATE PROCEDURE spu_activo_filtrar_con_garantia(
+    IN _filtro_categoria INT, IN _filtro_responsable INT, IN _filtro_calidad VARCHAR(20),
+    IN _filtro_sede INT, IN _filtro_dependencia INT, IN _filtro_estado VARCHAR(20),
+    IN _filtro_estado_garantia VARCHAR(20))
+BEGIN
+    SELECT ac.id_activo, ac.id_administrativo, ac.id_categoria, ac.id_dependencia, ac.id_sede, ac.foto,
+        ac.cod_patrimonial, c.nombre_categoria, CONCAT(ac.marca, ' / ', ac.modelo) AS marca_modelo,
+        s.nombre_sede, d.nombre_dependencia,
+        CONCAT(p.per_nombre, ' ', p.per_apepat, ' ', p.per_apemat) AS npersona,
+        ac.estado, ac.fecha_adquisicion, ac.fecha_registro, ac.observacion, ac.serie, ac.estado_mov,
+        COALESCE(gar.estado_garantia, 'SIN_GARANTIA') AS estado_garantia,
+        gar.fecha_fin AS garantia_fecha_fin, gar.proveedor AS garantia_proveedor,
+        mov.tipo_mov AS ultimo_movimiento
+    FROM activo ac
+    LEFT JOIN categoria c ON ac.id_categoria = c.id_categoria
+    LEFT JOIN sede s ON ac.id_sede = s.id_sede
+    LEFT JOIN administrativo a ON ac.id_administrativo = a.id_administrativo
+    LEFT JOIN dependencia d ON ac.id_dependencia = d.id_dependencia
+    LEFT JOIN persona p ON a.id_persona = p.id_persona
+    LEFT JOIN (SELECT g.id_activo, CASE WHEN g.fecha_fin < CURDATE() THEN 'VENCIDA' WHEN g.fecha_fin <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'PROXIMO_A_VENCER' ELSE 'VIGENTE' END AS estado_garantia, g.fecha_fin, g.proveedor FROM garantia g INNER JOIN (SELECT id_activo, MAX(id_garantia) AS id_garantia FROM garantia GROUP BY id_activo) ult_g ON ult_g.id_garantia = g.id_garantia) gar ON gar.id_activo = ac.id_activo
+    LEFT JOIN (SELECT m.id_activo, m.tipo_mov FROM movimiento m INNER JOIN (SELECT MAX(id_movimiento) AS id_movimiento, id_activo FROM movimiento GROUP BY id_activo) lm ON lm.id_movimiento = m.id_movimiento) mov ON mov.id_activo = ac.id_activo
+    WHERE ac.estado_activo = '1'
+        AND (_filtro_categoria IS NULL OR ac.id_categoria = _filtro_categoria)
+        AND (_filtro_responsable IS NULL OR ac.id_administrativo = _filtro_responsable)
+        AND (_filtro_calidad IS NULL OR ac.estado_mov = _filtro_calidad)
+        AND (_filtro_sede IS NULL OR ac.id_sede = _filtro_sede)
+        AND (_filtro_dependencia IS NULL OR ac.id_dependencia = _filtro_dependencia)
+        AND (_filtro_estado IS NULL OR ac.estado = _filtro_estado)
+        AND (_filtro_estado_garantia IS NULL OR (_filtro_estado_garantia = 'SIN_GARANTIA' AND gar.id_activo IS NULL) OR gar.estado_garantia = _filtro_estado_garantia)
+    ORDER BY ac.fecha_registro DESC;
+END$$
+
+-- Actualiza spu_garantia_resumen con filtro estado_activo
+DROP PROCEDURE IF EXISTS spu_garantia_resumen$$
+CREATE PROCEDURE spu_garantia_resumen()
+BEGIN
+    SELECT
+        COALESCE(SUM(CASE WHEN estado_calc = 'VIGENTE' THEN 1 ELSE 0 END), 0) AS vigentes,
+        COALESCE(SUM(CASE WHEN estado_calc = 'PROXIMO_A_VENCER' THEN 1 ELSE 0 END), 0) AS proximas_a_vencer,
+        COALESCE(SUM(CASE WHEN estado_calc = 'VENCIDA' THEN 1 ELSE 0 END), 0) AS vencidas,
+        COALESCE(SUM(CASE WHEN g.id_activo IS NULL THEN 1 ELSE 0 END), 0) AS sin_garantia
+    FROM activo ac
+    LEFT JOIN (SELECT g.id_activo, CASE WHEN g.fecha_fin < CURDATE() THEN 'VENCIDA' WHEN g.fecha_fin <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'PROXIMO_A_VENCER' ELSE 'VIGENTE' END AS estado_calc FROM garantia g INNER JOIN (SELECT id_activo, MAX(id_garantia) AS id_garantia FROM garantia GROUP BY id_activo) ult ON ult.id_garantia = g.id_garantia) g ON g.id_activo = ac.id_activo
+    WHERE ac.estado_activo = '1';
+END$$
+
 DELIMITER ;

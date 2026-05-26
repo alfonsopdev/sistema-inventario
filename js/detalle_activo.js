@@ -20,11 +20,48 @@ $(document).ready(function(){
             $("#sede_activo").text(data[0].nombre_sede);
             $("#dependencia_activo").text(data[0].nombre_dependencia);
             $("#responsable_activo").text(data[0].npersona);
+            $("#fecha_adquisicion_activo").text(data[0].fecha_adquisicion || '—');
             $("#fecha_activo").text(data[0].fecha_registro);
 
+            var ordenCompra = data[0].orden_compra;
+            if (ordenCompra && ordenCompra !== '') {
+                $("#orden_compra_activo").html('<a href="archivos/' + ordenCompra + '" target="_blank"><i class="fas fa-file-pdf"></i> ' + ordenCompra + '</a>');
+            } else {
+                $("#orden_compra_activo").text('—');
+            }
+
             $("#descripcion_activo").text(data[0].observacion);
+
+            cargarGarantiaActivo(idactivo);
         }
     });
+
+    function cargarGarantiaActivo(idactivo) {
+        $.ajax({
+            url: 'controllers/Garantia.controller.php',
+            type: 'GET',
+            data: { op: 'listarPorActivo', idactivo: idactivo },
+            dataType: 'json',
+            success: function (data) {
+                if (data && data.length > 0) {
+                    var g = data[0];
+                    var badge = 'secondary';
+                    if (g.estado === 'VIGENTE') badge = 'success';
+                    else if (g.estado === 'PROXIMO_A_VENCER') badge = 'warning';
+                    else if (g.estado === 'VENCIDA') badge = 'danger';
+                    $("#garantia_activo").html(
+                        '<span class="badge badge-' + badge + '">' + g.estado + '</span>' +
+                        ' <small class="text-muted">(hasta ' + g.fecha_fin + ')</small>'
+                    );
+                } else {
+                    $("#garantia_activo").html('<span class="badge badge-secondary">Sin garantía</span>');
+                }
+            },
+            error: function () {
+                $("#garantia_activo").html('<span class="badge badge-secondary">Sin garantía</span>');
+            }
+        });
+    }
 
     function calcularDiasRestantes(fechaDevolucion) {
 

@@ -84,9 +84,22 @@ if ($_SESSION['nivelacceso'] == 'Médico') {
                   <td id="responsable_activo"></td>
                 </tr>
                 <tr>
+                  <th>Fecha de Adquisición:</th>
+                  <td id="fecha_adquisicion_activo"></td>
+                </tr>
+                <tr>
                   <th>Fecha de Registro:</th>
                   <td id="fecha_activo"></td>
                 </tr>
+                <tr>
+                  <th>Orden de Compra:</th>
+                  <td id="orden_compra_activo"></td>
+                </tr>
+                <tr>
+                  <th>Garantía:</th>
+                  <td id="garantia_activo"></td>
+                </tr>
+
               </tbody>
             </table>
 

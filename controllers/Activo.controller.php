@@ -136,6 +136,12 @@ if (isset($_GET['op'])){
         exit;
     }
 
+    if($_GET['op']== 'eliminarActivo'){
+      $activo->eliminarActivo(["_idactivo" => $_GET["idactivo"]]);
+      echo json_encode(["status" => "success"]);
+      exit;
+    }
+
     if($_GET['op']== 'eliminarProducto'){
       $producto->eliminarProducto(["idproducto" => $_GET["idproducto"]]);
     }
@@ -465,10 +471,11 @@ if(isset($_POST['op'])){
         $idsede          = $_POST["idsede"];
         $iddependencia   = $_POST["iddependencia"];
         $estado          = $_POST["estado"];
+        $fechaAdq        = $_POST["fecha_adquisicion"] ?? null;
         $observacion     = $_POST["observacion"];
         $fotoActual      = $_POST["foto_actual"];
 
-        $nombreFoto = $fotoActual; // por defecto mantiene la misma foto
+        $nombreFoto = $fotoActual;
 
         if (!empty($_FILES["foto"]["tmp_name"])) {
             $nombreFoto = date('YmdHis') . ".jpg";
@@ -477,28 +484,37 @@ if(isset($_POST['op'])){
                 exit;
             }
             if ($fotoActual != "" && file_exists("../img/" . $fotoActual)) {
-                unlink("../img/" . $fotoActual); // elimina foto anterior
+                unlink("../img/" . $fotoActual);
+            }
+        }
+
+        $ordenCompra = null;
+        if (!empty($_FILES["ordenCompra"]["tmp_name"])) {
+            $ext = strtolower(pathinfo($_FILES["ordenCompra"]["name"], PATHINFO_EXTENSION));
+            if ($ext === 'pdf') {
+                $ordenCompra = uniqid('orden_', true) . ".pdf";
+                move_uploaded_file($_FILES["ordenCompra"]["tmp_name"], "../archivos/" . $ordenCompra);
             }
         }
 
         $resultado = $activo->modificarActivo([
-            "_idactivo"          => $idactivo,
-            "_idcategoria"       => $idcategoria,
-            "_txt_marca"         => $marca,
-            "_txt_modelo"        => $modelo,
-            "_txt_serie"         => $serie,
-            "_txt_patrimonial"   => $codPatrimonial,
-            "_select_responsable"=> $idadministrativo,
-            "_select_sede"       => $idsede,
-            "_select_dependencia"=> $iddependencia,
-            "_foto"              => $nombreFoto,
-            "_select_estado"     => $estado,
-            "_observacion"       => $observacion
+            "_idactivo"               => $idactivo,
+            "_idcategoria"            => $idcategoria,
+            "_txt_marca"              => $marca,
+            "_txt_modelo"             => $modelo,
+            "_txt_serie"              => $serie,
+            "_txt_patrimonial"        => $codPatrimonial,
+            "_select_responsable"     => $idadministrativo,
+            "_select_sede"            => $idsede,
+            "_select_dependencia"     => $iddependencia,
+            "_foto"                   => $nombreFoto,
+            "_select_estado"          => $estado,
+            "_observacion"            => $observacion,
+            "_date_fecha_adquisicion" => $fechaAdq,
+            "_orden_compra"           => $ordenCompra
         ]);
 
         echo json_encode($resultado[0]);
-
-        
       }
 
       // Prestamo de un solo activo
@@ -758,6 +774,13 @@ if(isset($_POST['op'])){
       }
 }
 
+function ordenCompraLink($r) {
+    if (property_exists($r, 'orden_compra') && !empty($r->orden_compra)) {
+        return "<a href='archivos/{$r->orden_compra}' target='_blank' title='Ver orden de compra'><i class='fas fa-file-pdf text-danger' style='font-size:20px'></i></a>";
+    }
+    return "<span class='text-muted'>—</span>";
+}
+
 function renderActivosTable($rows) {
     if (!empty($rows)) {
         $i = 1;
@@ -830,6 +853,7 @@ function renderActivosTable($rows) {
                     <td class='text-center'>{$r->npersona}</td>
                     <td class='text-center'>{$badge}</td>
                     <td class='text-center'>{$badgeGarantia}</td>
+                    <td class='text-center'>" . ordenCompraLink($r) . "</td>
                     <td class='text-center'>
                         <div class='btn-group'>
                             <button type='button' class='btn btn-sm btn-outline-primary dropdown-toggle' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>

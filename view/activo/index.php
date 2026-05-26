@@ -174,6 +174,7 @@ if ($_SESSION['nivelacceso'] == 'Médico') {
                             <th class="text-center">Responsable</th>
                             <th class="text-center">Estado</th>
                             <th class="text-center">Garantía</th>
+                            <th class="text-center">Orden de Compra</th>
                             <th class="text-center">Acción</th>
 
                         </tr>
@@ -437,6 +438,19 @@ if ($_SESSION['nivelacceso'] == 'Médico') {
                                 <option value="REGULAR">Regular</option>
                                 <option value="MALO">Malo</option>
                             </select>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <label for="fecCompra_editar">Fecha de adquisición:</label>
+                            <input type="date" class="form-control" id="fecCompra_editar">
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <label for="ordenCompra_editar">Orden de compra (PDF):</label>
+                            <div class="input-group">
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="ordenCompra_editar" accept="application/pdf">
+                                    <label class="custom-file-label" for="ordenCompra_editar">Elegir archivo</label>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-sm-12 mt-3">
                             <label for="txt_observacion_editar">Observacion:</label>
