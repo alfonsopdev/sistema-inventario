@@ -210,6 +210,49 @@ BEGIN
     SELECT * FROM mantenimiento WHERE id_mantenimiento = _id_mantenimiento;
 END$$
 
+-- 4b. SP — LISTAR TODOS LOS MANTENIMIENTOS (para dashboard global)
+CREATE PROCEDURE spu_mantenimiento_listar_todos()
+BEGIN
+    SELECT
+        m.id_mantenimiento,
+        m.id_activo,
+        m.tipo_mantenimiento,
+        m.fecha_mantenimiento,
+        m.descripcion,
+        m.responsable,
+        m.costo,
+        m.documento_pdf,
+        m.proveedor,
+        m.fecha_proximo_mantenimiento,
+        m.fecha_registro,
+        ac.cod_patrimonial,
+        CONCAT(ac.marca, ' / ', ac.modelo) AS activo_nombre,
+        c.nombre_categoria,
+        CONCAT(p.per_nombre, ' ', p.per_apepat, ' ', p.per_apemat) AS responsable_nombre,
+        CASE
+            WHEN m.fecha_proximo_mantenimiento IS NULL THEN NULL
+            WHEN m.fecha_proximo_mantenimiento < CURDATE() THEN 'VENCIDO'
+            WHEN m.fecha_proximo_mantenimiento <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 'PROXIMO'
+            ELSE 'PROGRAMADO'
+        END AS estado_proximo
+    FROM mantenimiento m
+    INNER JOIN activo ac ON ac.id_activo = m.id_activo
+    LEFT JOIN categoria c ON ac.id_categoria = c.id_categoria
+    ORDER BY m.fecha_mantenimiento DESC;
+END$$
+
+-- 4c. SP — RESUMEN DE MANTENIMIENTOS (para dashboard)
+CREATE PROCEDURE spu_mantenimiento_resumen()
+BEGIN
+    SELECT
+        COUNT(*) AS total_mantenimientos,
+        COALESCE(SUM(CASE WHEN m.tipo_mantenimiento = 'PREVENTIVO' THEN 1 ELSE 0 END), 0) AS preventivos,
+        COALESCE(SUM(CASE WHEN m.tipo_mantenimiento = 'CORRECTIVO' THEN 1 ELSE 0 END), 0) AS correctivos,
+        COALESCE(SUM(CASE WHEN m.tipo_mantenimiento = 'PREDICTIVO' THEN 1 ELSE 0 END), 0) AS predictivos,
+        COALESCE(SUM(m.costo), 0) AS costo_total
+    FROM mantenimiento m;
+END$$
+
 -- 5. SP — CARGA MASIVA DE ACTIVOS
 
 CREATE PROCEDURE spu_activo_carga_masiva(

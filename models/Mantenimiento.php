@@ -48,4 +48,22 @@ class Mantenimiento extends ModelMaster
             die($error->getMessage());
         }
     }
+
+    public function listarTodos()
+    {
+        try {
+            return parent::getRows("spu_mantenimiento_listar_todos");
+        } catch (Exception $error) {
+            die($error->getMessage());
+        }
+    }
+
+    public function resumen()
+    {
+        try {
+            return parent::getRows("spu_mantenimiento_resumen");
+        } catch (Exception $error) {
+            die($error->getMessage());
+        }
+    }
 }

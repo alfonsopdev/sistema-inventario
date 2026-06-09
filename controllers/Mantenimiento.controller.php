@@ -24,6 +24,18 @@ if (isset($_GET['op'])) {
         echo json_encode(["status" => "success"]);
         exit;
     }
+
+    if ($_GET['op'] == 'listarTodos') {
+        $data = $mantenimiento->listarTodos();
+        echo json_encode($data);
+        exit;
+    }
+
+    if ($_GET['op'] == 'resumen') {
+        $data = $mantenimiento->resumen();
+        echo json_encode($data);
+        exit;
+    }
 }
 
 if (isset($_POST['op'])) {

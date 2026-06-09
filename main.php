@@ -155,6 +155,12 @@
                     </a>
                   </li>
                   <li class='nav-item'>
+                    <a href='main.php?view=mantenimiento' class='nav-link'>
+                    <i class='fa fa-tools nav-icon'></i>
+                      <p>Mantenimientos</p>
+                    </a>
+                  </li>
+                  <li class='nav-item'>
                     <a href='main.php?view=movimiento' class='nav-link'>
                     <i class='fa fa-truck nav-icon'></i>
                       <p>Movientos de Activos</p>
